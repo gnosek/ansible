@@ -159,6 +159,7 @@ class Base(with_metaclass(BaseMeta, object)):
 
     # flags and misc. settings
     _environment         = FieldAttribute(isa='list')
+    _umask               = FieldAttribute(isa='int')
     _no_log              = FieldAttribute(isa='bool')
     _always_run          = FieldAttribute(isa='bool')
     _run_once            = FieldAttribute(isa='bool')

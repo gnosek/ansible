@@ -200,6 +200,18 @@ class ActionBase(with_metaclass(ABCMeta, object)):
 
         return self._connection._shell.env_prefix(**final_environment)
 
+    def _compute_umask(self):
+        '''
+        Determines the umask to use when executing the remote task
+        '''
+        if self._task.umask is not None:
+            umasks = self._task.umask
+            if not isinstance(umasks, list):
+                umasks = [umasks]
+            for umask in umasks:
+                if umask is not None:
+                    return self._templar.template(umask)
+
     def _early_needs_tmp_path(self):
         '''
         Determines if a temp path should be created before the action is executed.
@@ -666,6 +678,7 @@ class ActionBase(with_metaclass(ABCMeta, object)):
             display.debug("done transferring module to remote")
 
         environment_string = self._compute_environment_string()
+        umask = self._compute_umask()
 
         if tmp and remote_module_path:
             remote_files = [tmp, remote_module_path]
@@ -695,6 +708,9 @@ class ActionBase(with_metaclass(ABCMeta, object)):
             interpreter = shebang.replace('#!', '').strip()
             async_cmd = [interpreter, remote_async_module_path, async_jid, async_limit, remote_module_path]
 
+            if umask is not None:
+                display.warning('Setting the umask is not supported with async tasks')
+
             if environment_string:
                 async_cmd.insert(0, environment_string)
 
@@ -723,7 +739,7 @@ class ActionBase(with_metaclass(ABCMeta, object)):
                     # not sudoing or sudoing to root, so can cleanup files in the same step
                     rm_tmp = tmp
 
-            cmd = self._connection._shell.build_module_command(environment_string, shebang, cmd, arg_path=args_file_path, rm_tmp=rm_tmp).strip()
+            cmd = self._connection._shell.build_module_command(environment_string, shebang, cmd, arg_path=args_file_path, rm_tmp=rm_tmp, umask=umask).strip()
 
         # Fix permissions of the tmp path and tmp files. This should be called after all files have been transferred.
         if remote_files:

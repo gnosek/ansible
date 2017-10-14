@@ -154,7 +154,7 @@ class ShellBase(AnsiblePlugin):
                 user_home_path = shlex_quote(user_home_path)
         return 'echo %s' % user_home_path
 
-    def build_module_command(self, env_string, shebang, cmd, arg_path=None, rm_tmp=None):
+    def build_module_command(self, env_string, shebang, cmd, arg_path=None, rm_tmp=None, umask=None):
         # don't quote the cmd if it's an empty string, because this will break pipelining mode
         if cmd.strip() != '':
             cmd = shlex_quote(cmd)
@@ -168,6 +168,8 @@ class ShellBase(AnsiblePlugin):
         if arg_path is not None:
             cmd_parts.append(arg_path)
         new_cmd = " ".join(cmd_parts)
+        if umask is not None:
+            new_cmd = '%s umask %o %s %s %s' % (self._SHELL_GROUP_LEFT, umask, self._SHELL_AND, new_cmd, self._SHELL_GROUP_RIGHT)
         if rm_tmp:
             new_cmd = '%s; rm -rf "%s" %s' % (new_cmd, rm_tmp, self._SHELL_REDIRECT_ALLNULL)
         return new_cmd
